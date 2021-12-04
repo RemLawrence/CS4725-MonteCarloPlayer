@@ -23,6 +23,13 @@ public class MCTreeNode {
         this.parent = null;
     }
 
+    private MCTreeNode(MCTreeNode parent, Card[][] board, PokerSquaresPointSystem system) { //for tree branches, called by nodes
+        this.numberOfActions = parent.numberOfActions + 1; /* An action has been taken */
+        this.parent = parent;
+        this.board = board;
+        this.system = system;
+    }
+
     public void trial(Card card, LinkedList<Card> temporaryDeck) {
         LinkedList<Card> deckForSelectAction = (LinkedList<Card>) temporaryDeck.clone();
 
@@ -32,11 +39,11 @@ public class MCTreeNode {
         // tree policy
         visited.add(this);
         //System.out.println(cur.isLeaf());
-        while (!cur.isLeaf()) {
-            cur = cur.selectBestValue();
-            deckForSelectAction.pop();
-            visited.add(cur);
-        }
+        // TODOwhile (!cur.isLeaf()) {
+        //     cur = cur.selectBestValue();
+        //     deckForSelectAction.pop();
+        //     visited.add(cur);
+        // }
 
         // expand
         cur.createChildren(card);
@@ -47,18 +54,18 @@ public class MCTreeNode {
             newNode = cur;
         }
         else {
-            newNode = cur.selectBestValue();
-            visited.add(newNode);
+            //TODOnewNode = cur.selectBestValue();
+            //TODOvisited.add(newNode);
         }
         
         // roll out and update stats for each node
         double value = 0;
         for(int i = 0; i<uctPlayer.numSimulationsPerRollout; i++) {
-            value = value + newNode.rollOut(deckForSelectAction);
+            //TODOvalue = value + newNode.rollOut(deckForSelectAction);
         }
         for (MCTreeNode node : visited) {
             
-            node.updateStats(value);
+            //TODOnode.updateStats(value);
         }
     }
 
