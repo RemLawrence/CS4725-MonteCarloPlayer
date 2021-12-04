@@ -2,12 +2,22 @@
  * 
  */
 
-public class MCPlayer implements PokerSquaresPlayer {
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Stack;
+import java.util.List;
+import java.util.LinkedList;
+import java.util.Objects;
+
+public class UCTPlayer implements PokerSquaresPlayer {
     private final int SIZE = 5; // number of rows/columns in square grid
 	private final int NUM_POS = SIZE * SIZE; // number of positions in square grid
 	private final int NUM_CARDS = Card.NUM_CARDS; // number of cards in deck
 	private Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
-	/* range: 0-24, means 25 cards to play */
+	/* range: 0-24, means 25 cards to play 
+		e.g. play(3,4) = 3*5+4 = 19, 20th card */
 	private int[] plays = new int[NUM_POS]; // positions of plays so far (index 0 through numPlays - 1) recorded as integers using row-major indices.
 	// row-major indices: play (r, c) is recorded as a single integer r * SIZE + c (See http://en.wikipedia.org/wiki/Row-major_order)
 	// From plays index [numPlays] onward, we maintain a list of yet unplayed positions.
@@ -20,20 +30,25 @@ public class MCPlayer implements PokerSquaresPlayer {
 												 // onward, we maintain a list of undealt cards for MC simulation.
 	private int[][] legalPlayLists = new int[NUM_POS][NUM_POS]; // stores legal play lists indexed by numPlays (depth)
 	// (This avoids constant allocation/deallocation of such lists during the selections of MC simulations.)
+	public int numTrialsPerDeck = 10;
+    public int numSimulationsPerRollout = 1;
+    public double selectionConstant = 10;
+	public List<Card> list = Arrays.asList(simDeck);
+    public LinkedList<Card> deck = new LinkedList<Card>();
 
     /**
-	 * Create a Monte Carlo player that simulates random play to depth 2.
+	 * Create a Monte Carlo player that uses UCT to evaluate each playout's value
 	 */
-	public MCPlayer() {
+	public UCTPlayer() {
 	}
 
     /**
 	 * Create a Random Monte Carlo player that simulates random play to a given depth limit.
 	 * @param depthLimit depth limit for random simulated play
 	 */
-	public MCPlayer(int depthLimit) {
-		this.depthLimit = depthLimit;
-	}
+	// public UCTPlayer(int depthLimit) {
+	// 	this.depthLimit = depthLimit;
+	// }
 
     /* (non-Javadoc)
 	 * @see PokerSquaresPlayer#init()
@@ -65,7 +80,7 @@ public class MCPlayer implements PokerSquaresPlayer {
 	 */
 	@Override
 	public String getName() {
-		return "MCPlayerDepth " + depthLimit;
+		return "Zhangliang Ma, Micah Hanmin Wang, UCTPlayer";
 	}
 
     /* (non-Javadoc)
@@ -73,7 +88,37 @@ public class MCPlayer implements PokerSquaresPlayer {
 	 */
 	@Override
 	public int[] getPlay(Card card, long millisRemaining) {
+        // (This avoids constant allocation/deallocation of such lists during the greedy selections of MC simulations.)
+        LinkedList<Card> temporarySimDeck = new LinkedList<Card>();
+        int[] play = new int[2];
         
+        if (numPlays == 0) {
+            /* Initialize everything when playing first */
+            deck.addAll(list);
+            /* Remove the card from the current deck */
+            deck.remove(card);
+            /* Always place the first card at the upper left corner aka grid[0][0] */
+            grid[0][0] = card;
+            
+            play[0] = 0;
+            play[1] = 0;
+        }
+        else if (numPlays > 0 & numPlays < 24) { // not the forced last play
+			// not the first play either
+            /* remove current card from the deck first */
+
+            // compute average time per move evaluation
+            /* remainingPlays = how many cards left? First round: 25-0 */
+            int remainingPlays = NUM_POS - numPlays; // ignores triviality of last play to keep a conservative margin for game completion
+            /* millisPerPlay = Average time allowed per remaining play */
+            long millisPerPlay = (millisRemaining - 1000) / remainingPlays; // dividing time evenly with future getPlay() calls
+            //System.out.println(play + "\n");
+            long startTime = System.currentTimeMillis();
+            long endTime = startTime + millisPerPlay;
+            
+            deck.remove(card);
+		}
+		return play;
     }
 
     /**
@@ -84,6 +129,6 @@ public class MCPlayer implements PokerSquaresPlayer {
         /* Using British System */
         PokerSquaresPointSystem system = PokerSquaresPointSystem.getBritishPointSystem();
         System.out.println(system);
-        new PokerSquares(new MCPlayer(), system).play(); // play a single game
+        new PokerSquares(new UCTPlayer(), system).play(); // play a single game
     }
 }
