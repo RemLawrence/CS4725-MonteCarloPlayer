@@ -10,6 +10,7 @@ public class MCTreeNode {
     private UCTPlayer uctPlayer = new UCTPlayer();
     PokerSquaresPointSystem system; /* System will be passed as a parameter */
     public Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
+    public final double epsilon = 1e-6; 
 
     public Card[][] board;
     private int numberOfActions; // number of actions made so far in this simulation
@@ -57,7 +58,7 @@ public class MCTreeNode {
         visited.add(this);
         //System.out.println(cur.isLeaf());
         // TODOwhile (!cur.isLeaf()) {
-        //     cur = cur.selectBestValue();
+        //     cur = cur.bestUCTValue();
         //     deckForSelectAction.pop();
         //     visited.add(cur);
         // }
@@ -72,8 +73,8 @@ public class MCTreeNode {
             newNode = cur;
         }
         else {
-            //TODOnewNode = cur.selectBestValue();
-            //TODOvisited.add(newNode);
+            newNode = cur.bestUCTValue();
+            visited.add(newNode);
         }
         
         // roll out and update stats for each node
@@ -124,6 +125,24 @@ public class MCTreeNode {
             /* Assign those (uctPlayer.NUM_POS - numberOfActions) # of children to the root node */
             this.children = children;
         }
+    }
+
+    /* Choose the child node (partially filled board) that has the max UCB1(S) */
+    public MCTreeNode bestUCTValue() {
+        MCTreeNode bestNode = null;
+        double bestValue = Double.MIN_VALUE;
+        //System.out.println(nVisits);
+        // go through each child and select best
+        for (MCTreeNode child : children) {
+            double uctValue = child.totValue / (child.nVisits + epsilon) + 
+            selectionConstant * (Math.sqrt(Math.log(nVisits+1) / (child.nVisits + epsilon))) +
+            random.nextDouble() * epsilon; // small random number to break ties randomly in unexpanded nodes
+            if (uctValue > bestValue) {
+                bestNode = child;
+                bestValue = uctValue;
+            }
+        }
+        return bestNode;
     }
     
 }
