@@ -23,7 +23,7 @@ public class MCTreeNode {
         this.parent = null;
     }
 
-    public void trail(Card card, LinkedList<Card> temporaryDeck) {
+    public void trial(Card card, LinkedList<Card> temporaryDeck) {
         LinkedList<Card> deckForSelectAction = (LinkedList<Card>) temporaryDeck.clone();
 
         List<MCTreeNode> visited = new LinkedList<MCTreeNode>();
@@ -43,7 +43,7 @@ public class MCTreeNode {
         
         // select
         MCTreeNode newNode;
-        if (cur.numberOfActions == mctsPlayer.NUM_POS) {
+        if (cur.numberOfActions == uctPlayer.NUM_POS) {
             newNode = cur;
         }
         else {
@@ -53,7 +53,7 @@ public class MCTreeNode {
         
         // roll out and update stats for each node
         double value = 0;
-        for(int i = 0; i<mctsPlayer.numSimulationsPerRollout; i++) {
+        for(int i = 0; i<uctPlayer.numSimulationsPerRollout; i++) {
             value = value + newNode.rollOut(deckForSelectAction);
         }
         for (MCTreeNode node : visited) {
@@ -63,39 +63,39 @@ public class MCTreeNode {
     }
 
     public void createChildren(Card card) {
-        if (numberOfActions == mctsPlayer.NUM_POS) {
+        if (numberOfActions == uctPlayer.NUM_POS) {
             children = null;
             return;
         }
         else {
             int cardPos = 0; // Used for record the card position for each children */
             /* You're gonna have 25-1 children for that root node! */
-            MCTreeNode[] children = new MCTreeNode[mctsPlayer.NUM_POS - numberOfActions];
+            MCTreeNode[] children = new MCTreeNode[uctPlayer.NUM_POS - numberOfActions];
 
-            for (int i = 0; i < mctsPlayer.NUM_POS - numberOfActions; i++) {
+            for (int i = 0; i < uctPlayer.NUM_POS - numberOfActions; i++) {
 
-                Card[][] tempBoard = new Card[mctsPlayer.SIZE][mctsPlayer.SIZE];
+                Card[][] tempBoard = new Card[uctPlayer.SIZE][uctPlayer.SIZE];
 
                 /* Copy whatever in the already played board */
-                for(int row = 0; row < mctsPlayer.SIZE; row++) {
-                    for(int col = 0; col < mctsPlayer.SIZE; col++) {
+                for(int row = 0; row < uctPlayer.SIZE; row++) {
+                    for(int col = 0; col < uctPlayer.SIZE; col++) {
                         tempBoard[row][col] = board[row][col];
                     }
                 }
                 
                 /* From 0,0 -> 0,1 -> 0,2.... find the position that is not null */
-                while (this.board[cardPos / mctsPlayer.SIZE][cardPos % mctsPlayer.SIZE] != null) {
+                while (this.board[cardPos / uctPlayer.SIZE][cardPos % uctPlayer.SIZE] != null) {
                     cardPos++;
                 } 
                 /* Place the card in that first null position */
-                tempBoard[cardPos / mctsPlayer.SIZE][cardPos % mctsPlayer.SIZE] = card;
+                tempBoard[cardPos / uctPlayer.SIZE][cardPos % uctPlayer.SIZE] = card;
                 
                 /* children numba i (range: 0-24) shall be added for the root */
-                /* This demonstrates mctsPlayer.NUM_POS - numberOfActions of possibilities of this card's potential position in the board */
+                /* This demonstrates uctPlayer.NUM_POS - numberOfActions of possibilities of this card's potential position in the board */
                 children[i] = new MCTreeNode(this, tempBoard, system);
                 cardPos++;
             }
-            /* Assign those (mctsPlayer.NUM_POS - numberOfActions) # of children to the root node */
+            /* Assign those (uctPlayer.NUM_POS - numberOfActions) # of children to the root node */
             this.children = children;
         }
     }

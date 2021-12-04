@@ -12,23 +12,23 @@ import java.util.LinkedList;
 import java.util.Objects;
 
 public class UCTPlayer implements PokerSquaresPlayer {
-    private final int SIZE = 5; // number of rows/columns in square grid
-	private final int NUM_POS = SIZE * SIZE; // number of positions in square grid
-	private final int NUM_CARDS = Card.NUM_CARDS; // number of cards in deck
-	private Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
+    public final int SIZE = 5; // number of rows/columns in square grid
+	public final int NUM_POS = SIZE * SIZE; // number of positions in square grid
+	public final int NUM_CARDS = Card.NUM_CARDS; // number of cards in deck
+	public Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
 	/* range: 0-24, means 25 cards to play 
 		e.g. play(3,4) = 3*5+4 = 19, 20th card */
-	private int[] plays = new int[NUM_POS]; // positions of plays so far (index 0 through numPlays - 1) recorded as integers using row-major indices.
+	public int[] plays = new int[NUM_POS]; // positions of plays so far (index 0 through numPlays - 1) recorded as integers using row-major indices.
 	// row-major indices: play (r, c) is recorded as a single integer r * SIZE + c (See http://en.wikipedia.org/wiki/Row-major_order)
 	// From plays index [numPlays] onward, we maintain a list of yet unplayed positions.
-	private int numPlays = 0; // number of Cards played into the grid so far
-	private PokerSquaresPointSystem system; // point system
-	private int depthLimit = 2; // default depth limit for Random Monte Carlo (MC) play
-	private Card[][] grid = new Card[SIZE][SIZE]; // grid with Card objects or null (for empty positions)
-	private Card[] simDeck = Card.getAllCards(); // a list of all Cards. As we learn the index of cards in the play deck,
+	public int numPlays = 0; // number of Cards played into the grid so far
+	public PokerSquaresPointSystem system; // point system
+	public int depthLimit = 2; // default depth limit for Random Monte Carlo (MC) play
+	public Card[][] grid = new Card[SIZE][SIZE]; // grid with Card objects or null (for empty positions)
+	public Card[] simDeck = Card.getAllCards(); // a list of all Cards. As we learn the index of cards in the play deck,
 	                                             // we swap each dealt card to its correct index.  Thus, from index numPlays 
 												 // onward, we maintain a list of undealt cards for MC simulation.
-	private int[][] legalPlayLists = new int[NUM_POS][NUM_POS]; // stores legal play lists indexed by numPlays (depth)
+	public int[][] legalPlayLists = new int[NUM_POS][NUM_POS]; // stores legal play lists indexed by numPlays (depth)
 	// (This avoids constant allocation/deallocation of such lists during the selections of MC simulations.)
 	public int numTrialsPerDeck = 10;
     public int numSimulationsPerRollout = 1;
