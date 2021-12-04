@@ -89,8 +89,7 @@ public class UCTPlayer implements PokerSquaresPlayer {
 	@Override
 	public int[] getPlay(Card card, long millisRemaining) {
         // (This avoids constant allocation/deallocation of such lists during the greedy selections of MC simulations.)
-        LinkedList<Card> temporarySimDeck = new LinkedList<Card>();
-        int[] play = new int[2];
+        int[] playPos = new int[2];
         
         if (numPlays == 0) {
             /* Initialize everything when playing first */
@@ -100,25 +99,48 @@ public class UCTPlayer implements PokerSquaresPlayer {
             /* Always place the first card at the upper left corner aka grid[0][0] */
             grid[0][0] = card;
             
-            play[0] = 0;
-            play[1] = 0;
+            playPos[0] = 0;
+            playPos[1] = 0;
         }
         else if (numPlays > 0 & numPlays < 24) { // not the forced last play
 			// not the first play either
-            /* remove current card from the deck first */
 
             // compute average time per move evaluation
             /* remainingPlays = how many cards left? First round: 25-0 */
             int remainingPlays = NUM_POS - numPlays; // ignores triviality of last play to keep a conservative margin for game completion
             /* millisPerPlay = Average time allowed per remaining play */
             long millisPerPlay = (millisRemaining - 1000) / remainingPlays; // dividing time evenly with future getPlay() calls
-            //System.out.println(play + "\n");
+            //System.out.println(playPos + "\n");
             long startTime = System.currentTimeMillis();
+			/* Time allowed to play at each round */
             long endTime = startTime + millisPerPlay;
             
+			/* remove the card from our deck */
             deck.remove(card);
+
+			while (System.currentTimeMillis() < endTime) { // perform as many MC simulations as possible through the allotted time
+				/* This is a new shuffled deck. Usage: simulations */
+				LinkedList<Card> tempDeck = new LinkedList<Card>();
+				tempDeck = (LinkedList<Card>)deck.clone();
+				Collections.shuffle(tempDeck, random);
+				tempDeck.push(card);
+
+
+			}
 		}
-		return play;
+		else {
+			/* If last card, just insert in the only null place in the grid and return that playPos */
+            for(int row = 0; row < SIZE; row++) {
+                for(int col = 0; col < SIZE; col++) {
+                    if(grid[row][col] == null) {
+                        grid[row][col] = card;
+                        playPos[0] = row;
+                        playPos[1] = col;
+                    }
+                }
+            }
+        }
+		return playPos;
     }
 
     /**
