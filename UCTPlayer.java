@@ -118,6 +118,7 @@ public class UCTPlayer implements PokerSquaresPlayer {
 			/* remove the card from our deck */
             deck.remove(card);
 
+			/* While in the allowed time, perform as many simulations as possible :) */
 			while (System.currentTimeMillis() < endTime) { // perform as many MC simulations as possible through the allotted time
 				/* This is a new shuffled deck. Usage: simulations */
 				LinkedList<Card> tempDeck = new LinkedList<Card>();
@@ -125,7 +126,7 @@ public class UCTPlayer implements PokerSquaresPlayer {
 				Collections.shuffle(tempDeck, random);
 				tempDeck.push(card);
 
-
+				
 			}
 		}
 		else {
@@ -140,6 +141,8 @@ public class UCTPlayer implements PokerSquaresPlayer {
                 }
             }
         }
+		numPlays++;
+
 		return playPos;
     }
 
