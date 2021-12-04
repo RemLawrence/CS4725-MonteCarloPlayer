@@ -114,6 +114,9 @@ public class UCTPlayer implements PokerSquaresPlayer {
             long startTime = System.currentTimeMillis();
 			/* Time allowed to play at each round */
             long endTime = startTime + millisPerPlay;
+
+			/* The root of the Monte Carlo Search Tree */
+			MCTreeNode root = new MCTreeNode(numPlays, grid, system);
             
 			/* remove the card from our deck */
             deck.remove(card);
@@ -121,12 +124,23 @@ public class UCTPlayer implements PokerSquaresPlayer {
 			/* While in the allowed time, perform as many simulations as possible :) */
 			while (System.currentTimeMillis() < endTime) { // perform as many MC simulations as possible through the allotted time
 				/* This is a new shuffled deck. Usage: simulations */
-				LinkedList<Card> tempDeck = new LinkedList<Card>();
-				tempDeck = (LinkedList<Card>)deck.clone();
-				Collections.shuffle(tempDeck, random);
-				tempDeck.push(card);
-
-				
+				// (This avoids constant allocation/deallocation of such lists during the greedy selections of MC simulations.)
+                LinkedList<Card> tempDeck = new LinkedList<Card>();
+                
+                // create new shuffled sim deck to use
+                tempDeck = (LinkedList<Card>)deck.clone();
+                Collections.shuffle(tempDeck, random);
+                
+                // create trial
+                for(int x = 0; x < numTrialsPerDeck; x++) {
+                    root.trial(card, tempDeck);
+                }
+                
+                // //reset nodes
+                // for(PlayNode node: root.children) {
+                //     node.children = null;
+                // }
+                // tempDeck.clear();
 			}
 		}
 		else {
