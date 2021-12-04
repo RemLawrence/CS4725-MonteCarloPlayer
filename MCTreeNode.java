@@ -9,20 +9,37 @@ import java.util.Objects;
 public class MCTreeNode {
     private UCTPlayer uctPlayer = new UCTPlayer();
     PokerSquaresPointSystem system; /* System will be passed as a parameter */
+    public Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
+
     public Card[][] board;
     private int numberOfActions; // number of actions made so far in this simulation
     public MCTreeNode[] children; /* This node's children, empty for now */
     private MCTreeNode parent; /* This node's parent. If it has a parent, then this node has already being chosen as the best move among all children */
-    // private double nVisits = 0;
-    // private double totValue = 0;
+    private double nVisits = 0;
+    private double totValue = 0;
+    public int numSimulationsPerRollout = 1;
+    public double selectionConstant = 10;
 
-    public MCTreeNode(int numPlays, Card[][] board, PokerSquaresPointSystem system) { //For tree root, called by MCTS player
+    /**
+     * This constructor is for the root node of MCTree
+     * @param numPlays
+     * @param board
+     * @param system
+     */
+    public MCTreeNode(int numPlays, Card[][] board, PokerSquaresPointSystem system) {
         numberOfActions = numPlays;
         this.board = board;
         this.system = system;
         this.parent = null;
     }
 
+    /**
+     * This constructor is for any other node except the root node of MCTree.
+     * It must be initialized with a parent node.
+     * @param parent
+     * @param board
+     * @param system
+     */
     private MCTreeNode(MCTreeNode parent, Card[][] board, PokerSquaresPointSystem system) { //for tree branches, called by nodes
         this.numberOfActions = parent.numberOfActions + 1; /* An action has been taken */
         this.parent = parent;
@@ -30,7 +47,7 @@ public class MCTreeNode {
         this.system = system;
     }
 
-    public void trial(Card card, LinkedList<Card> temporaryDeck) {
+    public void trial(LinkedList<Card> temporaryDeck) {
         LinkedList<Card> deckForSelectAction = (LinkedList<Card>) temporaryDeck.clone();
 
         List<MCTreeNode> visited = new LinkedList<MCTreeNode>();
@@ -45,9 +62,10 @@ public class MCTreeNode {
         //     visited.add(cur);
         // }
 
-        // expand
-        cur.createChildren(card);
-        
+        /* Node Expansion */
+        Card card = deckForSelectAction.pop();
+        cur.nodeExpansion(card);
+
         // select
         MCTreeNode newNode;
         if (cur.numberOfActions == uctPlayer.NUM_POS) {
@@ -60,7 +78,7 @@ public class MCTreeNode {
         
         // roll out and update stats for each node
         double value = 0;
-        for(int i = 0; i<uctPlayer.numSimulationsPerRollout; i++) {
+        for(int i = 0; i < numSimulationsPerRollout; i++) {
             //TODOvalue = value + newNode.rollOut(deckForSelectAction);
         }
         for (MCTreeNode node : visited) {
@@ -69,7 +87,8 @@ public class MCTreeNode {
         }
     }
 
-    public void createChildren(Card card) {
+    /* Return children */
+    public void nodeExpansion(Card card) {
         if (numberOfActions == uctPlayer.NUM_POS) {
             children = null;
             return;

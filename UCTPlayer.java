@@ -31,8 +31,6 @@ public class UCTPlayer implements PokerSquaresPlayer {
 	public int[][] legalPlayLists = new int[NUM_POS][NUM_POS]; // stores legal play lists indexed by numPlays (depth)
 	// (This avoids constant allocation/deallocation of such lists during the selections of MC simulations.)
 	public int numTrialsPerDeck = 10;
-    public int numSimulationsPerRollout = 1;
-    public double selectionConstant = 10;
 	public List<Card> list = Arrays.asList(simDeck);
     public LinkedList<Card> deck = new LinkedList<Card>();
 
@@ -130,10 +128,11 @@ public class UCTPlayer implements PokerSquaresPlayer {
                 // create new shuffled sim deck to use
                 tempDeck = (LinkedList<Card>)deck.clone();
                 Collections.shuffle(tempDeck, random);
+                tempDeck.push(card);
                 
                 // create trial
                 for(int x = 0; x < numTrialsPerDeck; x++) {
-                    root.trial(card, tempDeck);
+                    root.trial(tempDeck);
                 }
                 
                 // //reset nodes
