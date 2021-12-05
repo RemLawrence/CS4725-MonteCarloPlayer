@@ -22,10 +22,9 @@ import java.util.ArrayList;
 import java.util.Random;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Stack;
 import java.util.List;
 import java.util.LinkedList;
-import java.util.Objects;
+import java.util.stream.*;
 
 @SuppressWarnings("unchecked")
 public class ZMPlayer implements PokerSquaresPlayer {
@@ -119,6 +118,9 @@ public class ZMPlayer implements PokerSquaresPlayer {
 	public int[] getPlay(Card card, long millisRemaining) {
         // (This avoids constant allocation/deallocation of such lists during the greedy selections of MC simulations.)
         int[] playPos = new int[2];
+
+		ArrayList<Integer> Rowlist = new ArrayList<Integer>(Arrays.asList(0,1,2,3,4));
+		ArrayList<Integer> Collist = new ArrayList<Integer>(Arrays.asList(0,1,2,3,4));
         
         if (numPlays == 0) {
             /* Initialize everything when playing first */
@@ -150,6 +152,8 @@ public class ZMPlayer implements PokerSquaresPlayer {
 			/* remove the card from our deck */
             deck.remove(card);
 
+			
+
 			/* While in the allowed time, perform as many simulations as possible :) */
 			while (System.currentTimeMillis() < endTime) { // perform as many MC simulations as possible through the allotted time
 				/* This is a new shuffled deck. Usage: simulations */
@@ -176,6 +180,18 @@ public class ZMPlayer implements PokerSquaresPlayer {
             MCTreeNode bestNode = currentNode.bestUCTValue();
             
 			/* Place the new card in the bestNode in the correct position */
+			Rowlist.parallelStream().forEach((row) -> {
+				Collist.parallelStream().forEach((col) -> {
+					if (bestNode.board[row][col] == card) {
+						grid[row][col] = card;
+                        playPos[0] = row;
+                        playPos[1] = col;
+                    }
+				});
+			});
+			
+			
+			/*
             for(int row = 0; row < SIZE; row++) {
                 for (int col = 0; col < SIZE; col++) {
                     if (bestNode.board[row][col] == card) {
@@ -185,27 +201,43 @@ public class ZMPlayer implements PokerSquaresPlayer {
                     }
                 }
             } 
+			*/
+			
+			
 			
 		}
 		else {
 			/* numPlays == 24 */
 			/* If last card, just insert in the only null place in the grid and return that playPos */
-            for(int row = 0; row < SIZE; row++) {
+			Rowlist.parallelStream().forEach((row) -> {
+				Collist.parallelStream().forEach((col) -> {
+					if(grid[row][col] == null) {
+						// Just place the card in the only empty pos 
+                        grid[row][col] = card;
+                        playPos[0] = row;
+                        playPos[1] = col;
+                    }
+				});
+			});
+
+			/*
+			for(int row = 0; row < SIZE; row++) {
                 for(int col = 0; col < SIZE; col++) {
                     if(grid[row][col] == null) {
-						/* Just place the card in the only empty pos */
+						// Just place the card in the only empty pos 
                         grid[row][col] = card;
                         playPos[0] = row;
                         playPos[1] = col;
                     }
                 }
             }
+			*/
+			
         }
 		numPlays++;
 
 		return playPos;
     }
-
     /**
 	 * Demonstrate MCPlay with British point system.
 	 * @param args (not used)
