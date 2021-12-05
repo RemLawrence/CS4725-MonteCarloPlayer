@@ -1,3 +1,19 @@
+/*****
+ * Everything we need for the Monte Carlo Search Tree.
+ * Including the helper functions for: 
+ * 1. do a single trial 
+ * 2. node expansion
+ * 3. calculate UCB value
+ * 4. Rollout
+ * 5. Update stats for each node
+ * 
+ * This is exactly the same implementation as the video below.
+ * Reference Video: https://www.youtube.com/watch?v=UXW2yZndl7U&t=6s
+ * 
+ * Author: Zhangliang Ma, Micah Hanmin Wang
+ * Date: 2021-12-02
+ */
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Random;
@@ -8,7 +24,7 @@ import java.util.Objects;
 
 @SuppressWarnings("unchecked")
 public class MCTreeNode {
-    private UCTPlayer uctPlayer = new UCTPlayer();
+    private ZMPlayer zmPlayer = new ZMPlayer();
     PokerSquaresPointSystem system; /* System will be passed as a parameter */
     public Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
     public final double epsilon = 1e-6; 
@@ -17,8 +33,8 @@ public class MCTreeNode {
     private int numberOfActions; // number of actions made so far in this simulation
     public MCTreeNode[] children; /* This node's children, empty for now */
     private MCTreeNode parent; /* This node's parent. If it has a parent, then this node has already being chosen as the best move among all children */
-    private double nVisits = 0;
-    private double totValue = 0;
+    private double visit = 0;
+    private double totalValue = 0;
     public int numSimulationsPerRollout = 1;
     public double selectionConstant = 10;
 
@@ -50,16 +66,7 @@ public class MCTreeNode {
     }
 
     /**
-     * Check if this current node is leaf already. If leaf, then prepares 
-     * backpropagation.
-     * @return
-     */
-    public boolean isLeaf() {
-        return children == null;
-    }
-
-    /**
-     * Do trials for the current Deck.
+     * Step 1: Do trials for the current Deck.
      * First, visit this currentNode and check if it is leaf already. 
      * If not, keep choosing its children that has the best UCB value.
      * Then, expand this leaf node to let it has the children with all possibilites of the position that
@@ -70,28 +77,26 @@ public class MCTreeNode {
      * @param temporaryDeck
      */
     public void trial(Card tempCard, LinkedList<Card> temporaryDeck) {
-        LinkedList<Card> deckForTrial = (LinkedList<Card>) temporaryDeck.clone();
-
         List<MCTreeNode> visited = new LinkedList<MCTreeNode>();
         MCTreeNode currentNode = this;
-        
-        // tree policy
         visited.add(this);
-        //System.out.println(cur.isLeaf());
-        while (!currentNode.isLeaf()) {
+
+        LinkedList<Card> deckForTrial = (LinkedList<Card>) temporaryDeck.clone();
+        /* Loop until the leaf node */
+        while (currentNode.children != null) {
             currentNode = currentNode.bestUCTValue();
-            deckForTrial.pop();
             visited.add(currentNode);
+            deckForTrial.pop();
         }
 
         /* Node Expansion */
         Card card = deckForTrial.pop();
         currentNode.nodeExpansion(card);
 
-        // select
+        /* Select the child with max UCB Value for the rollout */
         MCTreeNode bestChild;
         /* if numberOfActions == 25, just return the currentNode */
-        if (currentNode.numberOfActions == uctPlayer.NUM_POS) {
+        if (currentNode.numberOfActions == zmPlayer.NUM_POS) {
             bestChild = currentNode;
         }
         else {
@@ -100,72 +105,73 @@ public class MCTreeNode {
             visited.add(bestChild);
         }
         
-        // roll out and update stats for each node
-        double value = 0;
+        /* Do roll out, then update the stats for each node */
+        double backpropagationValue = 0;
         for(int i = 0; i < numSimulationsPerRollout; i++) {
-            value = value + bestChild.rollOut(deckForTrial);
+            backpropagationValue = backpropagationValue + bestChild.rollOut(deckForTrial);
         }
         for (MCTreeNode node : visited) {
-            node.updateStats(value);
+            node.updateStats(backpropagationValue);
         }
     }
 
     /**
-     * Find all the possibilities of the cnext card's potential position,
+     * Step 2: Find all the possibilities of the cnext card's potential position,
      * store them as children, append it to the currentNode.
      * @param card
      */
     public void nodeExpansion(Card card) {
-        if (numberOfActions == uctPlayer.NUM_POS) {
+        if (numberOfActions == zmPlayer.NUM_POS) {
             children = null;
             return;
         }
         else {
             int cardPos = 0; // Used for record the card position for each children */
             /* You're gonna have 25-1 children for that root node! */
-            MCTreeNode[] children = new MCTreeNode[uctPlayer.NUM_POS - numberOfActions];
+            MCTreeNode[] children = new MCTreeNode[zmPlayer.NUM_POS - numberOfActions];
 
-            for (int i = 0; i < uctPlayer.NUM_POS - numberOfActions; i++) {
+            for (int i = 0; i < zmPlayer.NUM_POS - numberOfActions; i++) {
 
-                Card[][] tempBoard = new Card[uctPlayer.SIZE][uctPlayer.SIZE];
+                Card[][] tempBoard = new Card[zmPlayer.SIZE][zmPlayer.SIZE];
 
                 /* Copy whatever in the already played board */
-                for(int row = 0; row < uctPlayer.SIZE; row++) {
-                    for(int col = 0; col < uctPlayer.SIZE; col++) {
+                for(int row = 0; row < zmPlayer.SIZE; row++) {
+                    for(int col = 0; col < zmPlayer.SIZE; col++) {
                         tempBoard[row][col] = board[row][col];
                     }
                 }
                 
                 /* From 0,0 -> 0,1 -> 0,2.... find the position that is not null */
-                while (this.board[cardPos / uctPlayer.SIZE][cardPos % uctPlayer.SIZE] != null) {
+                while (this.board[cardPos / zmPlayer.SIZE][cardPos % zmPlayer.SIZE] != null) {
                     cardPos++;
                 }
                 /* Place the card in that first null position */
-                tempBoard[cardPos / uctPlayer.SIZE][cardPos % uctPlayer.SIZE] = card;
+                tempBoard[cardPos / zmPlayer.SIZE][cardPos % zmPlayer.SIZE] = card;
                 
                 /* children numba i (range: 0-24) shall be added for the root */
-                /* This demonstrates uctPlayer.NUM_POS - numberOfActions of possibilities of this card's potential position in the board */
+                /* This demonstrates zmPlayer.NUM_POS - numberOfActions of possibilities of this card's potential position in the board */
                 children[i] = new MCTreeNode(this, tempBoard, system);
                 cardPos++;
             }
-            /* Assign those (uctPlayer.NUM_POS - numberOfActions) # of children to the root node */
+            /* Assign those (zmPlayer.NUM_POS - numberOfActions) # of children to the root node */
             this.children = children;
         }
     }
 
     /**
-     * Choose the child node (partially filled board) that has the max UCB1(S)
+     * Step 3: Choose the child node (partially filled board) that has the max UCB1(S)
      * (Tiebreaker if the first time)
+     * May the best child win.
      */
     public MCTreeNode bestUCTValue() {
         MCTreeNode bestNode = null;
         double bestValue = Double.MIN_VALUE;
-        //System.out.println(nVisits);
-        // go through each child and select best
+        //System.out.println(visit);
+
+        /* May the best child win. */
         for (MCTreeNode child : children) {
-            double uctValue = child.totValue / (child.nVisits + epsilon) + 
-            selectionConstant * (Math.sqrt(Math.log(nVisits+1) / (child.nVisits + epsilon))) +
-            uctPlayer.random.nextDouble() * epsilon; // small random number to break ties randomly in unexpanded nodes
+            /* small random number to break ties randomly in unexpanded nodes */
+            double uctValue = child.totalValue / (child.visit + epsilon) + selectionConstant * (Math.sqrt(Math.log(visit+1) / (child.visit + epsilon))) + zmPlayer.random.nextDouble() * epsilon;
             if (uctValue > bestValue) {
                 bestNode = child;
                 bestValue = uctValue;
@@ -174,39 +180,54 @@ public class MCTreeNode {
         return bestNode;
     }
     
+    /**
+     * Step 4: Rollout, randomly (Hey Mike, if you're reading this line, the rollout can actually 
+     * could be improved better to always select the best potential move each time using an evaluation
+     * function, but no time to do it):)
+     */
     public double rollOut(LinkedList<Card> temporaryDeck) {
         LinkedList<Card> deckForRollout = (LinkedList<Card>) temporaryDeck.clone();
         
-        // copy current board to new board to fill for rollout
-        Card[][] boardToFill = new Card[uctPlayer.SIZE][uctPlayer.SIZE];
-        for(int j = 0; j < uctPlayer.NUM_POS; j++) {
-            boardToFill[j/uctPlayer.SIZE][j%uctPlayer.SIZE] = board[j/uctPlayer.SIZE][j%uctPlayer.SIZE];
-        }//JANKY CODE
+        /* copy current board to new board to fill for rollout */
+        Card[][] boardToFill = new Card[zmPlayer.SIZE][zmPlayer.SIZE];
+        for(int row = 0; row < zmPlayer.SIZE; row++) {
+            for(int col = 0; col < zmPlayer.SIZE; col++) {
+                boardToFill[row][col] = board[row][col];
+            }
+        }
+
+        /* A stack recording the empty positions on the current board */
         Stack<Integer> emptyPositions = new Stack<Integer>();
-        
-        // find all empty positions of board
-        for(int i = 0; i < uctPlayer.NUM_POS; i++) {
-            if (boardToFill[i/uctPlayer.SIZE][i % uctPlayer.SIZE] == null) {
+        /* Find all empty positions of board */
+        for(int i = 0; i < zmPlayer.NUM_POS; i++) {
+            if (boardToFill[i / zmPlayer.SIZE][i % zmPlayer.SIZE] == null) {
+                //System.out.println(boardToFill[i / zmPlayer.SIZE][i % zmPlayer.SIZE]);
                 emptyPositions.push(i);
             }
-            
         }
         
-        // get an empty position randomly to put next card in
-        Collections.shuffle(emptyPositions, uctPlayer.random);
+        /* get an empty position randomly to put next card in */
+        Collections.shuffle(emptyPositions, zmPlayer.random);
         while(!emptyPositions.empty()) {
-            
             int square = emptyPositions.pop().intValue();
-            boardToFill[square / uctPlayer.SIZE][square %uctPlayer.SIZE] = deckForRollout.pop();
+            //System.out.println(square);
+            /* pop a random card for it */
+            boardToFill[square / zmPlayer.SIZE][square % zmPlayer.SIZE] = deckForRollout.pop();
         }
         double finalscore = system.getScore(boardToFill);
+        //System.out.println(finalScore);
         return finalscore;
         
     }
     
+    /**
+     * Step 5: Update # of visits for this node, and it's total value across all the simulations
+     * for future use.
+     * @param value
+     */
     public void updateStats(double value) {
-        nVisits++;
-        totValue += value;
+        totalValue += value;
+        visit++;
     }
     
 }

@@ -1,5 +1,21 @@
 /*****
+ * ZMPlayer - Zhangliang + Micah's player.
+ * This is an implementation of the Monte Carlo Player using 
+ * Upper Condidence Bounds Applied to Trees (UCT) to do the evaluation for
+ * each tree node.
+ * First, create a root node of the Monte Carlo Search Tree, then do a node expansion to have a number of emptyPosition 
+ * of children append to it, then calculating each UCT values of them, select the one that has the highest
+ * value, marked it as visited, do a rollout for it, get the value when reaching leaf, send back the value
+ * back to the node itself.
+ * Repeat the process, until the time allowed for this play is elapsed. During the limited time, do as many trials as
+ * we can to make sure we're making the best play.
+ * Generally, the more you visited one child node, the more likely it'll be chosen as the next play.
  * 
+ * This is exactly the same implementation as the video listed below.
+ * Reference Video: https://www.youtube.com/watch?v=UXW2yZndl7U&t=6s
+ * 
+ * Author: Zhangliang Ma, Micah Hanmin Wang
+ * Date: 2021-12-02
  */
 
 import java.util.ArrayList;
@@ -12,7 +28,7 @@ import java.util.LinkedList;
 import java.util.Objects;
 
 @SuppressWarnings("unchecked")
-public class UCTPlayer implements PokerSquaresPlayer {
+public class ZMPlayer implements PokerSquaresPlayer {
     public final int SIZE = 5; // number of rows/columns in square grid
 	public final int NUM_POS = SIZE * SIZE; // number of positions in square grid
 	public final int NUM_CARDS = Card.NUM_CARDS; // number of cards in deck
@@ -52,14 +68,14 @@ public class UCTPlayer implements PokerSquaresPlayer {
     /**
 	 * Create a Monte Carlo player that uses UCT to evaluate each playout's value
 	 */
-	public UCTPlayer() {
+	public ZMPlayer() {
 	}
 
     /**
 	 * Create a Random Monte Carlo player that simulates random play to a given depth limit.
 	 * @param depthLimit depth limit for random simulated play
 	 */
-	// public UCTPlayer(int depthLimit) {
+	// public RandomMCPlayer(int depthLimit) {
 	// 	this.depthLimit = depthLimit;
 	// }
 
@@ -93,7 +109,7 @@ public class UCTPlayer implements PokerSquaresPlayer {
 	 */
 	@Override
 	public String getName() {
-		return "Zhangliang Ma, Micah Hanmin Wang, UCTPlayer";
+		return "Zhangliang Ma, Micah Hanmin Wang, ZMPlayer";
 	}
 
     /* (non-Javadoc)
@@ -145,19 +161,18 @@ public class UCTPlayer implements PokerSquaresPlayer {
                 Collections.shuffle(tempDeck, random);
                 tempDeck.push(card);
                 
-                /* create trial */
+                /* create and do the trials */
                 for(int t = 0; t < trialsPerDeck; t++) {
                     currentNode.trial(card, tempDeck);
                 }
                 
-                //reset nodes
+                /* eliminate (reset) the nodes added in the trials */
                 for(MCTreeNode node: currentNode.children) {
                     node.children = null;
                 }
                 tempDeck.clear();
             }
             
-            double bestScore = Double.MIN_VALUE;
             MCTreeNode bestNode = currentNode.bestUCTValue();
             
 			/* Place the new card in the bestNode in the correct position */
@@ -173,10 +188,12 @@ public class UCTPlayer implements PokerSquaresPlayer {
 			
 		}
 		else {
+			/* numPlays == 24 */
 			/* If last card, just insert in the only null place in the grid and return that playPos */
             for(int row = 0; row < SIZE; row++) {
                 for(int col = 0; col < SIZE; col++) {
                     if(grid[row][col] == null) {
+						/* Just place the card in the only empty pos */
                         grid[row][col] = card;
                         playPos[0] = row;
                         playPos[1] = col;
@@ -197,6 +214,6 @@ public class UCTPlayer implements PokerSquaresPlayer {
         /* Using British System */
         PokerSquaresPointSystem system = PokerSquaresPointSystem.getBritishPointSystem();
         System.out.println(system);
-        new PokerSquares(new UCTPlayer(), system).play(); // play a single game
+        new PokerSquares(new ZMPlayer(), system).play(); // play a single game
     }
 }
