@@ -27,7 +27,7 @@ public class MCTreeNode {
     private ZMPlayer zmPlayer = new ZMPlayer();
     PokerSquaresPointSystem system; /* System will be passed as a parameter */
     public Random random = new Random(); // pseudorandom number generator for Monte Carlo simulation 
-    public final double epsilon = 1e-6; 
+    public final double smallTieBreaker = 1e-6; 
 
     public Card[][] board;
     private int numberOfActions; // number of actions made so far in this simulation
@@ -77,11 +77,15 @@ public class MCTreeNode {
      * @param temporaryDeck
      */
     public void trial(Card tempCard, LinkedList<Card> temporaryDeck) {
+        /* Copy the deck for trial */
+        LinkedList<Card> deckForTrial = (LinkedList<Card>) temporaryDeck.clone();
+
+        /* Make a list to keep tarcking the visited nodes */
         List<MCTreeNode> visited = new LinkedList<MCTreeNode>();
         MCTreeNode currentNode = this;
+        /* Mark this node as visited */
         visited.add(this);
 
-        LinkedList<Card> deckForTrial = (LinkedList<Card>) temporaryDeck.clone();
         /* Loop until the leaf node */
         while (currentNode.children != null) {
             currentNode = currentNode.bestUCTValue();
@@ -171,7 +175,9 @@ public class MCTreeNode {
         /* May the best child win. */
         for (MCTreeNode child : children) {
             /* small random number to break ties randomly in unexpanded nodes */
-            double uctValue = child.totalValue / (child.visit + epsilon) + selectionConstant * (Math.sqrt(Math.log(visit+1) / (child.visit + epsilon))) + zmPlayer.random.nextDouble() * epsilon;
+            double uctValue = child.totalValue / (child.visit + smallTieBreaker) + 
+            selectionConstant * (Math.sqrt(Math.log(visit+1) / (child.visit + smallTieBreaker))) + 
+            zmPlayer.random.nextDouble() * smallTieBreaker;
             if (uctValue > bestValue) {
                 bestNode = child;
                 bestValue = uctValue;
@@ -202,6 +208,7 @@ public class MCTreeNode {
         for(int i = 0; i < zmPlayer.NUM_POS; i++) {
             if (boardToFill[i / zmPlayer.SIZE][i % zmPlayer.SIZE] == null) {
                 //System.out.println(boardToFill[i / zmPlayer.SIZE][i % zmPlayer.SIZE]);
+                /* Get all the empty positions on the Stack */
                 emptyPositions.push(i);
             }
         }
