@@ -113,8 +113,8 @@ public class UCTPlayer implements PokerSquaresPlayer {
 			/* Time allowed to play at each round */
             long endTime = startTime + millisPerPlay;
 
-			/* The root of the Monte Carlo Search Tree */
-			MCTreeNode root = new MCTreeNode(numPlays, grid, system);
+			/* The currentNode of the Monte Carlo Search Tree */
+			MCTreeNode currentNode = new MCTreeNode(numPlays, grid, system);
             
 			/* remove the card from our deck */
             deck.remove(card);
@@ -132,15 +132,29 @@ public class UCTPlayer implements PokerSquaresPlayer {
                 
                 // create trial
                 for(int x = 0; x < numTrialsPerDeck; x++) {
-                    root.trial(tempDeck);
+                    currentNode.trial(tempDeck);
                 }
                 
-                // //reset nodes
-                // for(PlayNode node: root.children) {
-                //     node.children = null;
-                // }
-                // tempDeck.clear();
-			}
+                //reset nodes
+                for(MCTreeNode node: currentNode.children) {
+                    node.children = null;
+                }
+                tempDeck.clear();
+            }
+            
+            double bestScore = Double.MIN_VALUE;
+            MCTreeNode bestNode = currentNode.bestUCTValue();
+            
+            for(int row = 0; row < SIZE; row++) {
+                for (int col = 0; col < SIZE; col++) {
+                    if (bestNode.board[row][col] == card) {
+						grid[row][col] = card;
+                        playPos[0] = row;
+                        playPos[1] = col;
+                    }
+                }
+            } 
+			
 		}
 		else {
 			/* If last card, just insert in the only null place in the grid and return that playPos */

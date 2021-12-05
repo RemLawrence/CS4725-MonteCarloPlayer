@@ -48,6 +48,10 @@ public class MCTreeNode {
         this.system = system;
     }
 
+    public boolean isLeaf() {
+        return children == null;
+    }
+
     public void trial(LinkedList<Card> temporaryDeck) {
         LinkedList<Card> deckForSelectAction = (LinkedList<Card>) temporaryDeck.clone();
 
@@ -57,34 +61,34 @@ public class MCTreeNode {
         // tree policy
         visited.add(this);
         //System.out.println(cur.isLeaf());
-        // TODOwhile (!cur.isLeaf()) {
-        //     cur = cur.bestUCTValue();
-        //     deckForSelectAction.pop();
-        //     visited.add(cur);
-        // }
+        while (!cur.isLeaf()) {
+            cur = cur.bestUCTValue();
+            deckForSelectAction.pop();
+            visited.add(cur);
+        }
 
         /* Node Expansion */
         Card card = deckForSelectAction.pop();
         cur.nodeExpansion(card);
 
         // select
-        MCTreeNode newNode;
+        MCTreeNode bestChild;
+        /* if numberOfActions == 25 */
         if (cur.numberOfActions == uctPlayer.NUM_POS) {
-            newNode = cur;
+            bestChild = cur;
         }
         else {
-            newNode = cur.bestUCTValue();
-            visited.add(newNode);
+            bestChild = cur.bestUCTValue();
+            visited.add(bestChild);
         }
         
         // roll out and update stats for each node
         double value = 0;
-        for(int i = 0; i < numSimulationsPerRollout; i++) {
-            //TODOvalue = value + newNode.rollOut(deckForSelectAction);
+        for(int i = 0; i<numSimulationsPerRollout; i++) {
+            value = value + bestChild.rollOut(deckForSelectAction);
         }
         for (MCTreeNode node : visited) {
-            
-            //TODOnode.updateStats(value);
+            node.updateStats(value);
         }
     }
 
@@ -113,7 +117,7 @@ public class MCTreeNode {
                 /* From 0,0 -> 0,1 -> 0,2.... find the position that is not null */
                 while (this.board[cardPos / uctPlayer.SIZE][cardPos % uctPlayer.SIZE] != null) {
                     cardPos++;
-                } 
+                }
                 /* Place the card in that first null position */
                 tempBoard[cardPos / uctPlayer.SIZE][cardPos % uctPlayer.SIZE] = card;
                 
@@ -136,13 +140,48 @@ public class MCTreeNode {
         for (MCTreeNode child : children) {
             double uctValue = child.totValue / (child.nVisits + epsilon) + 
             selectionConstant * (Math.sqrt(Math.log(nVisits+1) / (child.nVisits + epsilon))) +
-            random.nextDouble() * epsilon; // small random number to break ties randomly in unexpanded nodes
+            uctPlayer.random.nextDouble() * epsilon; // small random number to break ties randomly in unexpanded nodes
             if (uctValue > bestValue) {
                 bestNode = child;
                 bestValue = uctValue;
             }
         }
         return bestNode;
+    }
+    
+    public double rollOut(LinkedList<Card> temporaryDeck) {
+        LinkedList<Card> deckForRollout = (LinkedList<Card>) temporaryDeck.clone();
+        
+        // copy current board to new board to fill for rollout
+        Card[][] boardToFill = new Card[uctPlayer.SIZE][uctPlayer.SIZE];
+        for(int j = 0; j < uctPlayer.NUM_POS; j++) {
+            boardToFill[j/uctPlayer.SIZE][j%uctPlayer.SIZE] = board[j/uctPlayer.SIZE][j%uctPlayer.SIZE];
+        }//JANKY CODE
+        Stack<Integer> emptyPositions = new Stack<Integer>();
+        
+        // find all empty positions of board
+        for(int i = 0; i < uctPlayer.NUM_POS; i++) {
+            if (boardToFill[i/uctPlayer.SIZE][i % uctPlayer.SIZE] == null) {
+                emptyPositions.push(i);
+            }
+            
+        }
+        
+        // get an empty position randomly to put next card in
+        Collections.shuffle(emptyPositions, uctPlayer.random);
+        while(!emptyPositions.empty()) {
+            
+            int square = emptyPositions.pop().intValue();
+            boardToFill[square / uctPlayer.SIZE][square %uctPlayer.SIZE] = deckForRollout.pop();
+        }
+        double finalscore = system.getScore(boardToFill);
+        return finalscore;
+        
+    }
+    
+    public void updateStats(double value) {
+        nVisits++;
+        totValue += value;
     }
     
 }
