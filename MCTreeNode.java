@@ -58,8 +58,19 @@ public class MCTreeNode {
         return children == null;
     }
 
+    /**
+     * Do trials for the current Deck.
+     * First, visit this currentNode and check if it is leaf already. 
+     * If not, keep choosing its children that has the best UCB value.
+     * Then, expand this leaf node to let it has the children with all possibilites of the position that
+     * the next card could possibly be placed.
+     * Pick the children with the best UCB value (if first time, then tiebreaker), visit it, and do the rollout.
+     * Finally, update the stats of the children to be used for the next trail.
+     * @param tempCard
+     * @param temporaryDeck
+     */
     public void trial(Card tempCard, LinkedList<Card> temporaryDeck) {
-        LinkedList<Card> deckForSelectAction = (LinkedList<Card>) temporaryDeck.clone();
+        LinkedList<Card> deckForTrial = (LinkedList<Card>) temporaryDeck.clone();
 
         List<MCTreeNode> visited = new LinkedList<MCTreeNode>();
         MCTreeNode currentNode = this;
@@ -69,12 +80,12 @@ public class MCTreeNode {
         //System.out.println(cur.isLeaf());
         while (!currentNode.isLeaf()) {
             currentNode = currentNode.bestUCTValue();
-            deckForSelectAction.pop();
+            deckForTrial.pop();
             visited.add(currentNode);
         }
 
         /* Node Expansion */
-        Card card = deckForSelectAction.pop();
+        Card card = deckForTrial.pop();
         currentNode.nodeExpansion(card);
 
         // select
@@ -92,14 +103,18 @@ public class MCTreeNode {
         // roll out and update stats for each node
         double value = 0;
         for(int i = 0; i < numSimulationsPerRollout; i++) {
-            value = value + bestChild.rollOut(deckForSelectAction);
+            value = value + bestChild.rollOut(deckForTrial);
         }
         for (MCTreeNode node : visited) {
             node.updateStats(value);
         }
     }
 
-    /* Return children */
+    /**
+     * Find all the possibilities of the cnext card's potential position,
+     * store them as children, append it to the currentNode.
+     * @param card
+     */
     public void nodeExpansion(Card card) {
         if (numberOfActions == uctPlayer.NUM_POS) {
             children = null;
@@ -138,7 +153,10 @@ public class MCTreeNode {
         }
     }
 
-    /* Choose the child node (partially filled board) that has the max UCB1(S) */
+    /**
+     * Choose the child node (partially filled board) that has the max UCB1(S)
+     * (Tiebreaker if the first time)
+     */
     public MCTreeNode bestUCTValue() {
         MCTreeNode bestNode = null;
         double bestValue = Double.MIN_VALUE;
