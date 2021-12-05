@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.Objects;
 
+@SuppressWarnings("unchecked")
 public class MCTreeNode {
     private UCTPlayer uctPlayer = new UCTPlayer();
     PokerSquaresPointSystem system; /* System will be passed as a parameter */

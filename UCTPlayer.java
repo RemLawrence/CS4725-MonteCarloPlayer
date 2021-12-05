@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.LinkedList;
 import java.util.Objects;
 
+@SuppressWarnings("unchecked")
 public class UCTPlayer implements PokerSquaresPlayer {
     public final int SIZE = 5; // number of rows/columns in square grid
 	public final int NUM_POS = SIZE * SIZE; // number of positions in square grid
