@@ -23,7 +23,7 @@ public class MCTreeNode {
     public double selectionConstant = 10;
 
     /**
-     * This constructor is for the root node of MCTree
+     * This constructor is ONLY for the root node of MCTree
      * @param numPlays
      * @param board
      * @param system
@@ -49,43 +49,49 @@ public class MCTreeNode {
         this.system = system;
     }
 
+    /**
+     * Check if this current node is leaf already. If leaf, then prepares 
+     * backpropagation.
+     * @return
+     */
     public boolean isLeaf() {
         return children == null;
     }
 
-    public void trial(LinkedList<Card> temporaryDeck) {
+    public void trial(Card tempCard, LinkedList<Card> temporaryDeck) {
         LinkedList<Card> deckForSelectAction = (LinkedList<Card>) temporaryDeck.clone();
 
         List<MCTreeNode> visited = new LinkedList<MCTreeNode>();
-        MCTreeNode cur = this;
+        MCTreeNode currentNode = this;
         
         // tree policy
         visited.add(this);
         //System.out.println(cur.isLeaf());
-        while (!cur.isLeaf()) {
-            cur = cur.bestUCTValue();
+        while (!currentNode.isLeaf()) {
+            currentNode = currentNode.bestUCTValue();
             deckForSelectAction.pop();
-            visited.add(cur);
+            visited.add(currentNode);
         }
 
         /* Node Expansion */
         Card card = deckForSelectAction.pop();
-        cur.nodeExpansion(card);
+        currentNode.nodeExpansion(card);
 
         // select
         MCTreeNode bestChild;
-        /* if numberOfActions == 25 */
-        if (cur.numberOfActions == uctPlayer.NUM_POS) {
-            bestChild = cur;
+        /* if numberOfActions == 25, just return the currentNode */
+        if (currentNode.numberOfActions == uctPlayer.NUM_POS) {
+            bestChild = currentNode;
         }
         else {
-            bestChild = cur.bestUCTValue();
+            /* Select the child with the best UCT value (being visited the most times, potentially :)) */
+            bestChild = currentNode.bestUCTValue();
             visited.add(bestChild);
         }
         
         // roll out and update stats for each node
         double value = 0;
-        for(int i = 0; i<numSimulationsPerRollout; i++) {
+        for(int i = 0; i < numSimulationsPerRollout; i++) {
             value = value + bestChild.rollOut(deckForSelectAction);
         }
         for (MCTreeNode node : visited) {

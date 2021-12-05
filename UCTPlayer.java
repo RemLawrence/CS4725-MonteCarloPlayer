@@ -31,9 +31,23 @@ public class UCTPlayer implements PokerSquaresPlayer {
 												 // onward, we maintain a list of undealt cards for MC simulation.
 	public int[][] legalPlayLists = new int[NUM_POS][NUM_POS]; // stores legal play lists indexed by numPlays (depth)
 	// (This avoids constant allocation/deallocation of such lists during the selections of MC simulations.)
-	public int numTrialsPerDeck = 10;
+	public int trialsPerDeck = 10; 
 	public List<Card> list = Arrays.asList(simDeck);
     public LinkedList<Card> deck = new LinkedList<Card>();
+
+	// //TODO: Don't just do random MC, do it according to each points
+	// public struct Score {
+	// 	int high_card = 0;
+	// 	int one_pair = 1;
+	// 	int two_pair = 3;
+	// 	int three_of_a_kind = 6;
+	// 	int straight = 12;
+	// 	int flush = 5;
+	// 	int full_house = 10;
+	// 	int four_of_a_kind = 16;
+	// 	int straight_flush = 30;
+	// 	int royal_flush = 30;
+	// }
 
     /**
 	 * Create a Monte Carlo player that uses UCT to evaluate each playout's value
@@ -131,9 +145,9 @@ public class UCTPlayer implements PokerSquaresPlayer {
                 Collections.shuffle(tempDeck, random);
                 tempDeck.push(card);
                 
-                // create trial
-                for(int x = 0; x < numTrialsPerDeck; x++) {
-                    currentNode.trial(tempDeck);
+                /* create trial */
+                for(int t = 0; t < trialsPerDeck; t++) {
+                    currentNode.trial(card, tempDeck);
                 }
                 
                 //reset nodes
@@ -146,6 +160,7 @@ public class UCTPlayer implements PokerSquaresPlayer {
             double bestScore = Double.MIN_VALUE;
             MCTreeNode bestNode = currentNode.bestUCTValue();
             
+			/* Place the new card in the bestNode in the correct position */
             for(int row = 0; row < SIZE; row++) {
                 for (int col = 0; col < SIZE; col++) {
                     if (bestNode.board[row][col] == card) {
