@@ -21,8 +21,6 @@ import java.util.Stack;
 import java.util.List;
 import java.util.LinkedList;
 import java.util.Objects;
-import java.util.ArrayList;
-import java.util.stream.*;
 
 @SuppressWarnings("unchecked")
 public class MCTreeNode {
@@ -141,36 +139,11 @@ public class MCTreeNode {
                 Card[][] tempBoard = new Card[zmPlayer.SIZE][zmPlayer.SIZE];
 
                 /* Copy whatever in the already played board */
-                /*
-                for(int row = 0; row < zmPlayer.SIZE; row++) {
-                    for(int col = 0; col < zmPlayer.SIZE; col++) {
-                        int R = row;
-                        int C = col;
-                        new Thread(){
-                            public void run() {
-                                copyCard(tempBoard, board, R, C);
-                            }
-                        }.start();
-                    }
-                }
-                */
-                ArrayList<Integer> Rowlist = new ArrayList<Integer>(Arrays.asList(0,1,2,3,4));
-		        ArrayList<Integer> Collist = new ArrayList<Integer>(Arrays.asList(0,1,2,3,4));
-                
-                Rowlist.parallelStream().forEach((row) -> {
-                    Collist.parallelStream().forEach((col) -> {
-                        tempBoard[row][col] = board[row][col];
-                    });
-                });
-
-                /*
                 for(int row = 0; row < zmPlayer.SIZE; row++) {
                     for(int col = 0; col < zmPlayer.SIZE; col++) {
                         tempBoard[row][col] = board[row][col];
                     }
                 }
-                */
-                
                 
                 /* From 0,0 -> 0,1 -> 0,2.... find the position that is not null */
                 while (this.board[cardPos / zmPlayer.SIZE][cardPos % zmPlayer.SIZE] != null) {
@@ -262,10 +235,6 @@ public class MCTreeNode {
     public void updateStats(double value) {
         totalValue += value;
         visit++;
-    }
-
-    public void copyCard(Card[][] tempBoard, Card[][] board, int row, int col){
-        tempBoard[row][col] = board[row][col];
     }
     
 }
