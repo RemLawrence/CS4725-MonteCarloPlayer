@@ -48,7 +48,17 @@ public class ZMPlayer implements PokerSquaresPlayer {
 	// (This avoids constant allocation/deallocation of such lists during the selections of MC simulations.)
 	public int trialsPerDeck = 10; 
 	public List<Card> list = Arrays.asList(simDeck);
-    public LinkedList<Card> deck = new LinkedList<Card>();
+	public LinkedList<Card> deck = new LinkedList<Card>();
+	
+	//------------------------------------------------------------
+	// concurrency supports
+	List<Integer> sizeList = IntStream.range(0, SIZE).boxed().collect(Collectors.toList());
+
+	ArrayList<Integer> Rowlist = new ArrayList<Integer>(sizeList);
+	ArrayList<Integer> Collist = new ArrayList<Integer>(sizeList);
+
+	List<Integer> boardList = IntStream.range(0, NUM_POS).boxed().collect(Collectors.toList());
+	ArrayList<Integer> gridArrayList = new ArrayList<Integer>(boardList);
 
 	// //TODO: Don't just do random MC, do it according to each points
 	// public struct Score {
@@ -85,14 +95,22 @@ public class ZMPlayer implements PokerSquaresPlayer {
 	@Override
 	public void init() {
 		// clear grid, all initialized to NULL
-		for (int row = 0; row < SIZE; row++)
-			for (int col = 0; col < SIZE; col++)
+		Rowlist.parallelStream().forEach((row) -> {
+			Collist.parallelStream().forEach((col) -> {
 				grid[row][col] = null;
+			});
+		});
+
+
 		// reset numPlays, we played 0 card so far.
 		numPlays = 0;
+
 		// (re)initialize list of play positions (row-major ordering)
-		for (int i = 0; i < NUM_POS; i++)
+		gridArrayList.parallelStream().forEach((i) -> {
 			plays[i] = i;
+		});
+
+	
 	}
 
     /* (non-Javadoc)
@@ -119,9 +137,6 @@ public class ZMPlayer implements PokerSquaresPlayer {
         // (This avoids constant allocation/deallocation of such lists during the greedy selections of MC simulations.)
         int[] playPos = new int[2];
 
-		ArrayList<Integer> Rowlist = new ArrayList<Integer>(Arrays.asList(0,1,2,3,4));
-		ArrayList<Integer> Collist = new ArrayList<Integer>(Arrays.asList(0,1,2,3,4));
-        
         if (numPlays == 0) {
             /* Initialize everything when playing first */
             deck.addAll(list);
@@ -155,6 +170,11 @@ public class ZMPlayer implements PokerSquaresPlayer {
 			
 
 			/* While in the allowed time, perform as many simulations as possible :) */
+			/**
+			 * We plan to add concurrency to this program but doing so means
+			 * 	we probably need to rebuild the entire thing, including the 
+			 * 	code already given to us. 
+			 */
 			while (System.currentTimeMillis() < endTime) { // perform as many MC simulations as possible through the allotted time
 				/* This is a new shuffled deck. Usage: simulations */
 				// (This avoids constant allocation/deallocation of such lists during the greedy selections of MC simulations.)
@@ -165,12 +185,19 @@ public class ZMPlayer implements PokerSquaresPlayer {
                 Collections.shuffle(tempDeck, random);
                 tempDeck.push(card);
                 
-                /* create and do the trials */
+				/* create and do the trials */
+				/**
+				 * we cannot simply parallelize this part because of the data 
+				 * 	dependency problem
+				 */
                 for(int t = 0; t < trialsPerDeck; t++) {
                     currentNode.trial(card, tempDeck);
                 }
                 
-                /* eliminate (reset) the nodes added in the trials */
+				/* eliminate (reset) the nodes added in the trials */
+				/**
+				 * This does not support concurrent stream access
+				 */
                 for(MCTreeNode node: currentNode.children) {
                     node.children = null;
                 }
@@ -189,22 +216,7 @@ public class ZMPlayer implements PokerSquaresPlayer {
                     }
 				});
 			});
-			
-			
-			/*
-            for(int row = 0; row < SIZE; row++) {
-                for (int col = 0; col < SIZE; col++) {
-                    if (bestNode.board[row][col] == card) {
-						grid[row][col] = card;
-                        playPos[0] = row;
-                        playPos[1] = col;
-                    }
-                }
-            } 
-			*/
-			
-			
-			
+						
 		}
 		else {
 			/* numPlays == 24 */
@@ -219,20 +231,6 @@ public class ZMPlayer implements PokerSquaresPlayer {
                     }
 				});
 			});
-
-			/*
-			for(int row = 0; row < SIZE; row++) {
-                for(int col = 0; col < SIZE; col++) {
-                    if(grid[row][col] == null) {
-						// Just place the card in the only empty pos 
-                        grid[row][col] = card;
-                        playPos[0] = row;
-                        playPos[1] = col;
-                    }
-                }
-            }
-			*/
-			
         }
 		numPlays++;
 
